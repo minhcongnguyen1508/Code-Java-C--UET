@@ -1,0 +1,81 @@
+
+#Cau 1:
+
+create table customer_hash(
+	customer_id SMALLINT,
+	store_id TINYINT,
+	firstname VARCHAR(25) NOT NULL,
+	lastname VARCHAR(25) NOT NULL,
+	email VARCHAR(35),
+	address_id SMALLINT	
+)
+partition by hash(address_id)
+partitions 4;
+
+EXPLAIN customer_hash;
+EXPLAIN PARTITIONS SELECT * FROM customer_hash;
+
+#Cau2
+create table rental_date(
+	rental_id INT NOT NULL AUTO_INCREMENT,
+	rental_date DATETIME NOT NULL,
+	inventory_id MEDIUMINT NOT NULL,
+	customer_id SMALLINT UNSIGNED NOT NULL,
+	return_date DATETIME DEFAULT NULL,
+	staff_id TINYINT UNSIGNED NOT NULL,
+	last_update TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	PRIMARY KEY (rental_id, rental_date)	
+)
+PARTITION BY RANGE(YEAR(rental_date))(
+	PARTITION p0 VALUES LESS THAN(2006),
+	PARTITION p1 VALUES LESS THAN(2007),
+	PARTITION pMax VALUES LESS THAN MAXVALUE		
+);
+ALTER TABLE rental_date DROP PARTITION pMax;
+ALTER TABLE rental_date ADD PARTITION (
+	PARTITION p2 VALUES LESS THAN(2008),
+	PARTITION p3 VALUES LESS THAN MAXVALUE
+); 
+
+insert into rental_date(rental_date, inventory_id, customer_id, staff_id) VALUES('2007-03-02 12:15:20',1,1,1); 
+
+EXPLAIN SELECT *
+FROM rental_date 
+WHERE rental_date BETWEEN '2007-01-01' AND '2007-12-31';
+
+#Cau 3:
+EXPLAIN SELECT * from actor
+WHERE last_name LIKE 'N%';
+
+EXPLAIN SELECT * from actor
+WHERE last_name LIKE '%N%';
+
+#=> Khong su dung duoc index
+
+#Cau 4:
+EXPLAIN SELECT * from rental
+WHERE rental_date between '2006-02-01' AND '2006-02-31'; 
+
+#+> Co 5 ban ghi, Co su dung index tren cot rental_date
+
+#Cau 5:
+# ------- JOIN----------
+EXPLAIN SELECT i.store_id, count(*) as total
+FROM rental r
+join inventory i on r.inventory_id = i.inventory_id
+where rental_date between '2006-02-01' AND '2006-02-31'
+group by i.store_id;
+
+#=> Su dung index
+#-------Truy van con------
+EXPLAIN SELECT store_id, count(*) as total
+from (
+	SELECT r.rental_date, i.store_id
+	FROM rental r
+	join inventory i on r.inventory_id = i.inventory_id
+	where rental_date between '2006-02-01' AND '2006-02-31'
+) as rental_date
+group by store_id;
+
+#=> su dung index
+#MYSQL thuc hien giong nhau ban dau thuc hien loc ra nhung ban ghi co rental_date nam trong 2/2006 Sau do moi thuc hien noi bang

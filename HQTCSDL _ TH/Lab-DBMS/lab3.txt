@@ -1,0 +1,73 @@
+1.
+DELIMITER $$
+CREATE PROCEDURE displayFilmInfo (IN p_category_id INT, IN p_language_id INT)
+BEGIN
+	IF(p_category_id = 0 AND p_language_id != 0) THEN
+		SELECT *FROM language
+		WHERE language_id = p_language_id;
+ELSEIF(p_language_id = 0 AND p_category_id = 0) THEN
+# khong co space
+		SELECT *FROM category
+		WHERE category_id = p_category_id;
+	ELSE 
+		SELECT *FROM category, language1
+		WHERE category_id = p_category_id AND language_id = p_language_id;	
+END IF;
+END$$
+//
+2.
+DELIMITER $$
+DROP PROCERDURE sumInventory $$
+CREATE PROCEDURE sumInventory(in storeid INT, in month VARCHAR(2), in year VARCHAR(4))
+BEGIN
+	SELECT a.address_id, a.address, COUNT(*) as rented FROM store s
+JOIN address a ON s.address_id = a.address_id
+JOIN inventory I ON s.store_id = i.store_id
+JOIN rental r ON i.inventory_id = r.inventory_id
+WHERE MONTH(r.rental_date) = month AND year(r.rental_date) = year AND s.store_id = storeid;
+END $$
+DELIMITER;
+//FUNCTION
+DELIMITER $$
+CREATE FUNCTION getTotal(storeid INT, month INT, year INT) RETURNS INT
+BEGIN
+	DECLARE sumTotal INT;
+	SELECT COUNT(*) INTO sumTotal FROM rental r
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN store s ON i.store_id = s.store_id
+WHERE MONTH(r.rental_date) = month AND year(r.rental_date) = year AND s.store_id = storeid;
+RETURN sumTotal;
+END $$
+3.
+DELIMITER $$
+DROP PROCEDURE IF EXISTS rental_film $$
+CREATE PROCEDURE rental_film()
+BEGIN
+	SELECT c.customer_id, c.first_name, c.last_name FROM rental r
+	JOIN customer c ON r.customer_id = c.customer_id
+	WHERE DATEDIFF(r.last_update, r.rental_date) >= 30 AND r.return_date is null ;
+END$$
+DELIMITER;
+Call rental_film();
+4. 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS upadate_price$$
+CREATE PROCEDURE update_price(IN p double, IN n INT)
+BEGIN
+	DECLARE cost double;
+	DECLARE finish INT DEFAULT 0;
+	DECLARE point_cursor CURSOR 
+    	FOR SELECT i.film_id, f.replacement_cost, COUNT(*) as total FROM inventory i
+JOIN film f ON i.film_id = f.film_id
+GROUP BY film_id
+ORDER BY total ASC
+LIMIT n;
+	OPEN point_cursor;
+	get_cost: LOOP
+	FETCH point_cursor INTO cost;
+	SET cost = cost - cost*p/100;
+	END LOOP get_cost;
+	CLOSE point_cursor;
+	
+END$$
+DELIMITER;

@@ -1,0 +1,62 @@
+﻿1.
+SELECT c.customer_id, f.title
+FROM customer c
+JOIN rental r ON c.customer_id = r.customer_id
+JOIN inventory i ON r.inventory_id = i.inventory_id
+JOIN film_text f ON i.film_id = f.film_id
+WHERE i.store_id = 2 AND r.return_date is null AND MONTH(rental_date) = 2 AND YEAR(rental_date) = 2006;
+
+2.
+SELECT *
+FROM film_text
+WHERE description LIKE '%drama%teacher%';
+------------
+ALTER TABLE film_text ADD fulltext (description); #ADD quyền match
+SELECT *
+FROM film_text
+WHERE MATCH(description) AGAINST ('+drama +teacher' IN BOOLEAN MODE);
+# Nếu thay dấu + thành dấu – có nghĩa là: + có drama (+drama), - có nghĩa là không có teacher 
+# (-teacher) khoảng cách giữa 2 kí tự bao giờ cũng có space;
+
+3.
+SELECT i.film_id, f.title, count(i.film_id) as total
+FROM inventory i
+JOIN film_text f ON i.film_id = f.film_id
+JOIN rental r ON i.inventory_id = r.inventory_id
+WHERE MONTH(rental_date) = 2 AND YEAR(rental_date) = 2006
+GROUP BY i.film_id, f.film_id # có  thể GROUP BY 2 column 1 lúc
+ORDER BY total DESC, i.film_id
+LIMIT 10;
+#a _ THạch’s 
+select f.film_id, f.title, count(*) as n_rentals from film f
+inner join inventory i on f.film_id = i.film_id
+inner join rental r on r.inventory_id = i.inventory_id
+where month(r.rental_date) = 2 and year(r.rental_date) = 2006
+group by f.film_id
+order by n_rentals desc, f.film_id
+limit 10
+
+# C2 SUBQUERY
+SELECT i.film_id, count(i.film_id) as total
+FROM inventory i
+WHERE i.inventory_id IN (
+SELECT r.inventory_id
+FROM rental r
+WHERE YEAR(rental_date) = 2006 AND MONTH(rental_date) = 2
+)
+GROUP BY i.film_id
+ORDER BY total DESC, i.film_id
+LIMIT 10;
+
+4.
+SELECT count(r.inventory_id), i.store_id
+FROM inventory i
+JOIN rental r ON  i.inventory_id = r.inventory_id
+WHERE MONTH(r.rental_date) = 2 AND YEAR(rental_date) = 2006
+GROUP BY i.store_id;
+
+5.
+SELECT title
+FROM film_text f
+JOIN inventory i ON f.film_id = i.film_id
+WHERE title LIKE '%dinosaur%' AND i.store_id = 1;

@@ -1,0 +1,11 @@
+# depslib dependency file v1.0
+1524056500 source:c:\users\cong\desktop\devc++\gamesudoku\define_common_function.cpp
+	<iostream>
+	"Common_Function.h"
+
+1524056350 c:\users\cong\desktop\devc++\gamesudoku\common_function.h
+
+1526299433 source:c:\users\cong\desktop\devc++\gamesudoku\main.cpp
+	<iostream>
+	"Common_Function.h"
+

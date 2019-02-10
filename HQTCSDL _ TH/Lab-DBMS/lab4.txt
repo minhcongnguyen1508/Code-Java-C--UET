@@ -1,0 +1,155 @@
+1:
+CREATE TABLE payment_log (
+  log_id SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  payment_id SMALLINT UNSIGNED,
+  customer_id SMALLINT UNSIGNED,
+  staff_id TINYINT UNSIGNED,
+  rental_id INT,
+  amount DECIMAL(5,2),
+  payment_date DATETIME,
+  modified DATETIME,
+  action VARCHAR(50),
+  PRIMARY KEY  (log_id)
+);
+
+DELIMITER $$
+CREATE TRIGGER payment_update 
+    AFTER UPDATE ON payment
+    FOR EACH ROW 
+BEGIN
+    INSERT INTO payment_log
+    VALUES (NULL,
+            NEW.payment_id,
+            NEW.customer_id,
+            NEW.staff_id,
+            NEW.rental_id,
+            NEW.amount,
+            NEW.payment_date,
+            NOW(),
+            'update');
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TRIGGER payment_update 
+    AFTER UPDATE ON payment
+    FOR EACH ROW 
+BEGIN
+    DECLARE customer_id SMALLINT UNSIGNED DEFAULT NULL;
+    DECLARE staff_id TINYINT UNSIGNED DEFAULT NULL;
+    DECLARE rental_id INT DEFAULT NULL;
+    DECLARE amount DECIMAL(5,2) DEFAULT NULL;
+    DECLARE payment_date DATETIME DEFAULT NULL;
+    IF (NEW.customer_id != OLD.customer_id) THEN
+        SET customer_id = NEW.customer_id;
+    END IF;
+    IF (NEW.staff_id != OLD.staff_id) THEN
+        SET staff_id = NEW.staff_id;
+    END IF;
+    IF (NEW.rental_id != OLD.rental_id) THEN
+        SET rental_id = NEW.rental_id;
+    END IF;
+    IF (NEW.amount != OLD.amount) THEN
+        SET amount = NEW.amount;
+    END IF;
+    IF (NEW.payment_date != OLD.payment_date) THEN
+        SET payment_date = NEW.payment_date;
+    END IF;
+    INSERT INTO payment_log
+    VALUES (NULL,
+            payment_id,
+            customer_id,
+            staff_id,
+            rental_id,
+            amount,
+            payment_date,
+            NOW(),
+            'update');
+END$$
+DELIMITER ;
+
+
+/*
+DELIMITER $$
+CREATE TRIGGER payment_insert 
+    AFTER INSERT ON payment
+    FOR EACH ROW 
+BEGIN
+    INSERT INTO payment_log
+    VALUES (NULL,
+            NEW.payment_id,
+            NEW.customer_id,
+            NEW.staff_id,
+            NEW.rental_id,
+            NEW.amount,
+            NEW.payment_date,
+            NOW(),
+            'insert');
+END$$
+DELIMITER ;
+*/
+
+2:
+ALTER TABLE inventory
+ADD COLUMN is_available BOOLEAN;
+
+DELIMITER $$
+CREATE TRIGGER on_insert_rental
+    AFTER INSERT ON rental
+    FOR EACH ROW 
+BEGIN
+    IF (NEW.return_date is NULL) THEN
+        UPDATE inventory
+        SET is_available = False
+        WHERE inventory_id = NEW.inventory_id;
+    ELSE
+        UPDATE inventory
+        SET is_available = True
+        WHERE inventory_id = NEW.inventory_id;
+    END IF;
+END$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TRIGGER on_update_rental
+    AFTER UPDATE ON rental
+    FOR EACH ROW 
+BEGIN
+    IF (NEW.return_date is NULL) THEN
+        UPDATE inventory
+        SET is_available = False
+        WHERE inventory_id = NEW.inventory_id;
+    ELSE
+        UPDATE inventory
+        SET is_available = True
+        WHERE inventory_id = NEW.inventory_id;
+    END IF;
+END$$
+DELIMITER ;
+
+3:
+show create view customer_list;
+
+4:
+create view actor_list as
+select a.actor_id as ID, concat(a.first_name, ' ', a.last_name) as Name,
+f.title as 'Film title', left(f.description, 100) as 'Film description'
+from film f 
+inner join film_actor fa on f.film_id = fa.film_id
+inner join actor a on a.actor_id = fa.actor_id;
+
+create view actor_list as
+select a.actor_id as ID, concat(a.first_name, ' ', a.last_name) as Name,
+group_concat(f.title separator ', ') as 'List film'
+from film f 
+inner join film_actor fa on f.film_id = fa.film_id
+inner join actor a on a.actor_id = fa.actor_id
+group by ID;
+
+
+5:
+create view sales_by_customer as
+select c.customer_id as ID, concat(c.first_name, ' ', c.last_name) as Name , sum(p.amount) as 'Total sales' from customer c
+inner join payment p on c.customer_id = p.customer_id
+group by c.customer_id
+order by sum(p.amount) desc;

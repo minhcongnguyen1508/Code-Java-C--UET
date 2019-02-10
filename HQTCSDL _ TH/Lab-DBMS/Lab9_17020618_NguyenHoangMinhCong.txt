@@ -1,0 +1,49 @@
+﻿Server: ds255403.mlab.com:55403
+
+#Db: cool_db
+#Account: student
+#Password: student123
+#Collection: mycollection
+
+#Dowload robo3t tại link https://robomongo.org/download
+#Tải bản .zip hoặc .exe
+
+#Giải nén bản .zip => mở robo3t.exe
+
+#B1: Tại Mongo Connections => Ấn Create
+#B2: Tại Connection settings điền address ds255403.mlab.com:55403
+#B3: Mở tab Authentication tích "Perform authentication" => điền Database: cool_db, use name: student, password: student123
+#B4: Test Connect => Save => connect
+
+#Câu 1:
+#Dạng tree mode => options => default view more Hoặc Ấn F2
+#Dạng text mode => F4
+
+db.getCollection('mycollection').find()
+
+#Câu 2:
+db.getCollection("mycollection").find({title : {$gte:"NoSQL"}})
+#Câu 3:
+db.getCollection('mycollection').find(
+{$or:[
+    {tile: {$gte: "NoSQL"}},
+    {description: {$gte: "NoSQL"}}
+    ]
+})
+#Câu 4:
+db.getCollection('mycollection').find({tags : "mongodb"})
+
+#Câu 5:
+db.getCollection('mycollection').find({likes : {$gt: 50}}).pretty()
+
+#Câu 6:
+db.getCollection('mycollection').find().sort({likes : -1})
+
+#Câu 7:
+db.getCollection('mycollection').aggregate([{$group: {_id : "$by_user", avg : {$avg: "$likes"}}}])
+
+#Câu 8:
+db.getCollection('mycollection').find({
+    comments : {$elemMatch : {dateCreated : {$gte: ISODate("2014-02-01"), $lte : ISODate("2014-02-31")}}}
+    })
+

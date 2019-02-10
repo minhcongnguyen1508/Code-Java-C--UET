@@ -1,0 +1,75 @@
+﻿
+
+Search tham khảo: My first cluster running on windows
+link: http://dev.mysql.com/downloads/cluster/
+-> MySQL Cluster7.3
+-> Select version 7.2.35 
+->Dowload bản phù hợp 
+-> Giải nén
+-> đổi tên thành mysqlc để trong tập C:\Users\Cong\Downloads\dbms\mysqlc
+#########
+# create folders trong cùng thư mục với mysqlc
+# MỞ cmd -> cd C:\Users\Cong\Downloads\dbms> mkdir my_cluster my_cluster\ndb_data my_cluster\mysqld_data my_cluster\conf
+my_cluster\mysqld_data\mysql my_cluster\mysqld_data\ndbinfo my_cluster\mysqld_data\performance_schema
+
+#Trong C:\Users\Cong\Downloads\dbms\my_cluster\conf.
+create 2 files (note that “/home/user1” should be replaced with your home directory):
+
+my.ini (windows):
+[mysqld]
+ndbcluster
+datadir=C:\\Users\\Cong\\Downloads\\dbms\\my_cluster\\mysqld_data
+basedir=C:\\Users\\Cong\\Downloads\\dbms\\mysqlc
+port=5000
+
+config.ini:
+[ndb_mgmd]
+hostname=localhost
+datadir=C:\\Users\\Cong\\Downloads\\dbms\\my_cluster\\ndb_data
+NodeId=1
+[ndbd default]
+noofreplicas=2
+datadir=C:\\Users\\Cong\\Downloads\\dbms\\my_cluster\\ndb_data
+[ndbd]
+hostname=localhost
+NodeId=3
+[ndbd]
+hostname=localhost
+NodeId=4
+[mysqld]
+NodeId=50
+
+> Sao chep CSDL
+C:\Users\Cong\Downloads\dbms>copy mysqlc\data\mysql my_cluster\mysqld_data\mysql
+C:\Users\Cong\Downloads\dbms>copy mysqlc\data\ndbinfo my_cluster\mysqld_data\ndbinfo
+C:\Users\Cong\Downloads\dbms>copy mysqlc\data\performance_schema my_cluster\mysqld_data\performance_schema
+
+>RUN;
+
+C:\Users\Cong\Downloads\dbms>cd my_cluster
+C:\Users\Cong\Downloads\dbms\my_cluster>start /B c:\Users\Cong\Downloads\dbms\mysqlc\bin\ndb_mgmd -f conf\config.ini --initial --configdir=c:\Users\Cong\Downloads\dbms\my_cluster\conf
+C:\Users\Cong\Downloads\dbms\my_cluster>start /B c:\Users\Cong\Downloads\dbms\mysqlc\bin\ndbd -c localhost:1186
+C:\Users\Cong\Downloads\dbms\my_cluster>start /B c:\Users\Cong\Downloads\dbms\mysqlc\bin\ndbd -c localhost:1186
+C:\Users\Cong\Downloads\dbms\my_cluster> c:\Users\Cong\Downloads\dbms\mysqlc\bin\ndb_mgm -e show
+c:\Users\Cong\Downloads\dbms\my_cluster>start /B c:\Users\Cong\Downloads\dbms\mysqlc\bin\mysqld --defaults-file=conf\my.ini
+
+> Bat sever
+Mở cmd
+cd C:\Users\Cong\Downloads\dbms\mysqlc\bin
+mysqld -u root -P 5000 --console
+
+>Dang nhap vao
+Mở cmd
+cd C:\Users\Cong\Downloads\dbms\mysqlc\bin
+mysql -u root -P 5000
+
+> Demo
+mysql> create database clusterdb;use clusterdb;
+mysql> create table simples (id int not null primary key) engine=ndb;
+mysql> insert into simples values (1),(2),(3),(4);
+mysql> select * from simples;
+
+>Shut down: (window) -> Ctrl + C;
+Hoặc
+cd c:\Users\Cong\Downloads\dbms\my_cluster> c:\Users\Cong\Downloads\dbms\mysqlc\bin\mysqladmin -u root -P5000 shutdown
+cd c:\Users\Cong\Downloads\dbms\my_cluster> c:\Users\Cong\Downloads\dbms\mysqlc\bin\ndb_mgm -e shutdown
